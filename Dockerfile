@@ -1,26 +1,15 @@
-FROM php:8.2-apache
+ FROM php:8.2-apache                                                                                                               
+  RUN a2dismod mpm_event || true \                                                                                                        && a2enmod mpm_prefork \
+      && a2enmod rewrite \
+      && docker-php-ext-install pdo pdo_mysql
 
-# Enable Apache mod_rewrite for URL routing
-RUN a2enmod rewrite
+  RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
 
-RUN a2dismod mpm_event && a2enmod mpm_prefork  
+  COPY . /var/www/html/
 
-# Install PDO MySQL extension required by the application
-RUN docker-php-ext-install pdo pdo_mysql
+  RUN mkdir -p /var/www/html/uploads/avatars \
+      && chown -R www-data:www-data /var/www/html/uploads \
+      && chmod -R 775 /var/www/html/uploads
 
-# Allow .htaccess overrides in the document root
-RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
-
-# Copy all application files to the Apache document root
-COPY . /var/www/html/
-
-# Ensure the uploads directory exists and is writable by the web server
-RUN mkdir -p /var/www/html/uploads/avatars \
-    && chown -R www-data:www-data /var/www/html/uploads \
-    && chmod -R 775 /var/www/html/uploads
-
-# Expose the default HTTP port
-EXPOSE 80
-
-# Apache is started automatically by the base image via apache2-foreground
-CMD ["apache2-foreground"]
+  EXPOSE 80
+  CMD ["apache2-foreground"]
