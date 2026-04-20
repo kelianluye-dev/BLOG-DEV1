@@ -1,18 +1,27 @@
 FROM php:8.2-apache
 
-# Disable ALL MPM modules first, then enable only mpm_prefork
+# Aggressively remove ALL non-prefork MPM modules:
+# 1. Use a2dismod to cleanly unregister known MPM variants
+# 2. Physically delete every mpm_*.load and mpm_*.conf symlink in
+#    mods-enabled/ EXCEPT mpm_prefork, so Apache cannot load them
+# 3. Ensure mpm_prefork is enabled and rewrite is available
+# 4. Validate that exactly one MPM remains before proceeding
 RUN a2dismod mpm_event mpm_worker mpm_itk 2>/dev/null || true \
+    && find /etc/apache2/mods-enabled/ \
+         -name 'mpm_*.load' -o -name 'mpm_*.conf' \
+       | grep -v 'mpm_prefork' \
+       | xargs rm -f \
     && a2enmod mpm_prefork \
     && a2enmod rewrite \
-    && docker-php-ext-install pdo pdo_mysql
+    && docker-php-ext-install pdo pdo_mysql \
+    && echo "--- MPM modules remaining in mods-enabled ---" \
+    && ls /etc/apache2/mods-enabled/mpm_* \
+    && echo "--- Validating single MPM ---" \
+    && test "$(ls /etc/apache2/mods-enabled/mpm_*.load 2>/dev/null | wc -l)" -eq 1 \
+    && echo "OK: exactly one MPM .load file present"
 
 # Allow .htaccess overrides
 RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
-
-# Fallback: strip any stray LoadModule directives for non-prefork MPMs
-RUN sed -i '/^LoadModule mpm_event/d; /^LoadModule mpm_worker/d; /^LoadModule mpm_itk/d' \
-        /etc/apache2/apache2.conf \
-        /etc/apache2/mods-enabled/*.conf 2>/dev/null || true
 
 COPY . /var/www/html/
 
