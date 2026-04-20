@@ -1,7 +1,10 @@
 FROM php:8.2-apache
 
-# Enable Apache mod_rewrite for URL routing
-RUN a2enmod rewrite
+# Ensure only mpm_prefork is active (base image may load mpm_event, causing
+# "More than one MPM loaded" errors), then enable mod_rewrite for URL routing
+RUN a2dismod mpm_event || true \
+    && a2enmod mpm_prefork \
+    && a2enmod rewrite
 
 # Install PDO MySQL extension required by the application
 RUN docker-php-ext-install pdo pdo_mysql
