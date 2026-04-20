@@ -1,10 +1,13 @@
-<?php                                                                                                                               $host     = getenv('MYSQL_ADDON_HOST')     ?: 'localhost';
-  $dbname   = getenv('MYSQL_ADDON_DB')       ?: 'blog_mvc';                                                                           $username = getenv('MYSQL_ADDON_USER')     ?: 'root';
-  $password = getenv('MYSQL_ADDON_PASSWORD') ?: '';
+<?php
+  $host     = getenv('MYSQLHOST')     ?: 'localhost';
+  $dbname   = getenv('MYSQLDATABASE') ?: 'blog_mvc';
+  $username = getenv('MYSQLUSER')     ?: 'root';
+  $password = getenv('MYSQLPASSWORD') ?: '';
+  $port     = getenv('MYSQLPORT')     ?: '3306';
 
   try {
       $pdo = new PDO(
-          "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+          "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
           $username,
           $password
       );
